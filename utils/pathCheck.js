@@ -1,5 +1,5 @@
-import fs from 'fs'; 
-import { join, isAbsolute } from 'path';
+import fs from "fs";
+import { join, isAbsolute } from "path";
 
 export function pathExists(targetPath) {
   if (!fs.existsSync(targetPath)) {
