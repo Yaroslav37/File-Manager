@@ -5,7 +5,7 @@ export function getEOL() {
 }
 
 export function getHomeDir() {
-  console.log(`Home directory: ${homedir()}`);
+  console.log(`Home directory: ${os.homedir()}`);
 }
 
 export function getUsername() {

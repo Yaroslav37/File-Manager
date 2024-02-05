@@ -1,6 +1,7 @@
 import fs from "fs";
 import { join, parse, dirname } from "path";
 import { homedir } from "os";
+import { pathDetermine, pathExists } from "./pathCheck.js";
 
 export function up() {
   const rootDirectoryPath = parse(homedir()).root;
@@ -17,17 +18,6 @@ export function cd(targetPath) {
 
   if (pathExists(newDirectoryPath)) {
     global.currentDirectoryPath = newDirectoryPath;
-  }
-}
-
-export function add(fileName) {
-  const filePath = pathDetermine(fileName);
-
-  if (!pathExists(filePath)) {
-    fs.writeFileSync(filePath, "");
-    console.log(`File ${fileName} created successfully.`);
-  } else {
-    console.log(`File ${fileName} already exists.`);
   }
 }
 

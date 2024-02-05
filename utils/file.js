@@ -1,6 +1,17 @@
-import fs from 'fs'; 
-import { join, parse } from 'path';
-import { pathExists, pathDetermine } from './pathCheck.js';
+import fs from "fs";
+import { join, parse } from "path";
+import { pathExists, pathDetermine } from "./pathCheck.js";
+
+export function add(fileName) {
+  const filePath = pathDetermine(fileName);
+
+  if (!pathExists(filePath)) {
+    fs.writeFileSync(filePath, "");
+    console.log(`File ${fileName} created successfully.`);
+  } else {
+    console.log(`File ${fileName} already exists.`);
+  }
+}
 
 export function cat(filePath) {
   if (!pathExists(filePath)) {
@@ -81,11 +92,9 @@ export function deleteFile(filePath) {
 }
 
 export function moveFile(sourceFilePath, destinationDirectoryPath) {
-  if (!copyFile(sourceFilePath, destinationDirectoryPath)) {
-    return false;
-  }
+  copyFile(sourceFilePath, destinationDirectoryPath);
 
-  if (deleteFile(sourceFilePath)) {
+  if (deleteFile(pathDetermine(sourceFilePath))) {
     return true;
   } else {
     return false;

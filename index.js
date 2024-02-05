@@ -8,9 +8,10 @@ import {
   getArchitecture,
   getCpuInfo,
 } from "./utils/os.js";
-import { up, add, ls, cd } from "./utils/filesystem.js";
+import { up, ls, cd } from "./utils/filesystem.js";
 import { getCommandLineArg } from "./utils/parseArg.js";
 import {
+  add,
   cat,
   renameFile,
   copyFile,
@@ -18,6 +19,7 @@ import {
   moveFile,
 } from "./utils/file.js";
 import { compressFile, decompressFile } from "./utils/zip.js";
+import { join } from "path";
 
 const username = getCommandLineArg("username");
 console.log(`Welcome to the File Manager, ${username}!`);
