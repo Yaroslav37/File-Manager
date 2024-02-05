@@ -43,6 +43,34 @@ function cd(targetPath) {
   }
 }
 
+function ls() {
+    const directoryContent = fs.readdirSync(currentDirectoryPath);
+
+    const folders = [];
+    const files = [];
+
+    directoryContent.forEach((item) => {
+        const itemPath = join(currentDirectoryPath, item);
+        const itemStats = fs.statSync(itemPath);
+        const itemType = itemStats.isDirectory() ? "Folder" : "File";
+        const itemName = itemType === "Folder" ? item : item.split(".")[0];
+        const itemExtension = itemType === "File" ? item.split(".")[1] : "";
+
+        if (itemType === "Folder") {
+            folders.push({ Name: `${itemName}.${itemExtension}`, Type: 'directory' });
+        } else {
+            files.push({ Name: `${itemName}.${itemExtension}`, Type: 'file' });
+        }
+    });
+
+    const sortedFolders = folders.sort((a, b) => a.Name.localeCompare(b.Name));
+    const sortedFiles = files.sort((a, b) => a.Name.localeCompare(b.Name));
+
+    const sortedDirectoryContent = sortedFolders.concat(sortedFiles);
+
+    console.table(sortedDirectoryContent);
+}
+
 const username = getCommandLineArg("username");
 console.log(`Welcome to the File Manager, ${username}!`);
 let currentDirectoryPath = join(process.env.SystemDrive, process.env.HOMEPATH);
@@ -67,16 +95,7 @@ rl.on("line", (line) => {
   }
 
   if (line === "ls") {
-    const directoryContent = fs.readdirSync(currentDirectoryPath);
-
-    directoryContent.forEach((item) => {
-      const itemPath = join(currentDirectoryPath, item);
-      const itemStats = fs.statSync(itemPath);
-      const itemType = itemStats.isDirectory() ? "Folder" : "File";
-      const itemName = itemType === "Folder" ? item : item.split(".")[0];
-      const itemExtension = itemType === "File" ? item.split(".")[1] : "";
-      console.log(`${itemType}: ${itemName}.${itemExtension}`);
-    });
+    ls();
   }
 
   rl.prompt();
