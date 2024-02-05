@@ -1,7 +1,7 @@
 import { createInterface } from "readline";
 import { parse, dirname, isAbsolute, join } from "path";
 import { homedir } from "os";
-import { existsSync } from "fs";
+import fs from "fs";
 
 function getCommandLineArg(argName) {
   const args = process.argv.slice(2);
@@ -45,10 +45,7 @@ function cd(targetPath) {
 
 const username = getCommandLineArg("username");
 console.log(`Welcome to the File Manager, ${username}!`);
-let currentDirectoryPath = join(
-  process.env.SystemDrive,
-  process.env.HOMEPATH
-);
+let currentDirectoryPath = join(process.env.SystemDrive, process.env.HOMEPATH);
 console.log(`You are currently in ${currentDirectoryPath}`);
 
 const rl = createInterface({
@@ -67,6 +64,19 @@ rl.on("line", (line) => {
   if (line.startsWith("cd ")) {
     const targetPath = line.split(" ")[1];
     cd(targetPath);
+  }
+
+  if (line === "ls") {
+    const directoryContent = fs.readdirSync(currentDirectoryPath);
+
+    directoryContent.forEach((item) => {
+      const itemPath = join(currentDirectoryPath, item);
+      const itemStats = fs.statSync(itemPath);
+      const itemType = itemStats.isDirectory() ? "Folder" : "File";
+      const itemName = itemType === "Folder" ? item : item.split(".")[0];
+      const itemExtension = itemType === "File" ? item.split(".")[1] : "";
+      console.log(`${itemType}: ${itemName}.${itemExtension}`);
+    });
   }
 
   rl.prompt();
