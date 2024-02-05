@@ -28,47 +28,105 @@ function up() {
 }
 
 function cd(targetPath) {
-  let newDirectoryPath;
+  let newDirectoryPath = pathDetermine(targetPath);
 
-  if (isAbsolute(targetPath)) {
-    newDirectoryPath = targetPath;
-  } else {
-    newDirectoryPath = join(currentDirectoryPath, targetPath);
-  }
-
-  if (existsSync(newDirectoryPath)) {
+  if (pathExists(newDirectoryPath)) {
     currentDirectoryPath = newDirectoryPath;
+  }
+}
+
+function add(fileName) {
+  const filePath = pathDetermine(fileName);
+
+  if (!pathExists(filePath)) {
+    fs.writeFileSync(filePath, "");
+    console.log(`File ${fileName} created successfully.`);
   } else {
-    console.log(`Operation failed: The system cannot find the path specified.`);
+    console.log(`File ${fileName} already exists.`);
   }
 }
 
 function ls() {
-    const directoryContent = fs.readdirSync(currentDirectoryPath);
+  const directoryContent = fs.readdirSync(currentDirectoryPath);
 
-    const folders = [];
-    const files = [];
+  const folders = [];
+  const files = [];
 
-    directoryContent.forEach((item) => {
-        const itemPath = join(currentDirectoryPath, item);
-        const itemStats = fs.statSync(itemPath);
-        const itemType = itemStats.isDirectory() ? "Folder" : "File";
-        const itemName = itemType === "Folder" ? item : item.split(".")[0];
-        const itemExtension = itemType === "File" ? item.split(".")[1] : "";
+  directoryContent.forEach((item) => {
+    const itemPath = join(currentDirectoryPath, item);
+    const itemStats = fs.statSync(itemPath);
+    const itemType = itemStats.isDirectory() ? "Folder" : "File";
+    const itemName = itemType === "Folder" ? item : item.split(".")[0];
+    const itemExtension = itemType === "File" ? item.split(".")[1] : "";
 
-        if (itemType === "Folder") {
-            folders.push({ Name: `${itemName}.${itemExtension}`, Type: 'directory' });
+    if (itemType === "Folder") {
+      folders.push({ Name: `${itemName}.${itemExtension}`, Type: "directory" });
+    } else {
+      files.push({ Name: `${itemName}.${itemExtension}`, Type: "file" });
+    }
+  });
+
+  const sortedFolders = folders.sort((a, b) => a.Name.localeCompare(b.Name));
+  const sortedFiles = files.sort((a, b) => a.Name.localeCompare(b.Name));
+
+  const sortedDirectoryContent = sortedFolders.concat(sortedFiles);
+
+  console.table(sortedDirectoryContent);
+}
+
+function pathDetermine(targetPath) {
+  let newPath;
+
+  if (isAbsolute(targetPath)) {
+    newPath = targetPath;
+  } else {
+    newPath = join(currentDirectoryPath, targetPath);
+  }
+
+  return newPath;
+}
+
+function cat(filePath) {
+  if (!pathExists(filePath)) {
+    return;
+  }
+
+  const readableStream = fs.createReadStream(filePath);
+
+  readableStream.on("data", (chunk) => {
+    console.log(chunk.toString());
+  });
+
+  readableStream.on("end", () => {
+    console.log("File reading completed");
+  });
+
+  readableStream.on("error", (error) => {
+    console.log(`Error reading file: ${error.message}`);
+  });
+}
+
+function renameFile(targetPath, newFilename) {
+    const filePath = pathDetermine(targetPath);
+    if (!pathExists(filePath)) {
+        return;
+    }
+    const newFilenamePath = pathDetermine(newFilename);
+    fs.rename(filePath, newFilenamePath, (err) => {
+        if (err) {
+            console.log(`Error renaming file: ${err}`);
         } else {
-            files.push({ Name: `${itemName}.${itemExtension}`, Type: 'file' });
+            console.log(`File renamed successfully to ${newFilename}`);
         }
     });
+}
 
-    const sortedFolders = folders.sort((a, b) => a.Name.localeCompare(b.Name));
-    const sortedFiles = files.sort((a, b) => a.Name.localeCompare(b.Name));
-
-    const sortedDirectoryContent = sortedFolders.concat(sortedFiles);
-
-    console.table(sortedDirectoryContent);
+function pathExists(targetPath) {
+    if (!fs.existsSync(targetPath)) {
+        console.log(`Operation failed: The system cannot find the path specified.`);
+        return false;
+    }
+    return true;
 }
 
 const username = getCommandLineArg("username");
@@ -96,6 +154,22 @@ rl.on("line", (line) => {
 
   if (line === "ls") {
     ls();
+  }
+
+  if (line.startsWith("cat ")) {
+    cat(pathDetermine(line.split(" ")[1]));
+  }
+
+  if (line.startsWith("add ")) {
+    const fileName = line.split(" ")[1];
+    add(fileName);
+  }
+
+  if (line.startsWith("rn ")) {
+    const args = line.split(" ");
+    const filePath = args[1];
+    const newFilename = args[2];
+    renameFile(filePath, newFilename);
   }
 
   rl.prompt();
