@@ -2,6 +2,7 @@ import { createInterface } from "readline";
 import { parse, dirname, isAbsolute, join } from "path";
 import { homedir } from "os";
 import fs from "fs";
+import os from "os";
 
 function getCommandLineArg(argName) {
   const args = process.argv.slice(2);
@@ -107,26 +108,81 @@ function cat(filePath) {
 }
 
 function renameFile(targetPath, newFilename) {
-    const filePath = pathDetermine(targetPath);
-    if (!pathExists(filePath)) {
-        return;
+  const filePath = pathDetermine(targetPath);
+  if (!pathExists(filePath)) {
+    return;
+  }
+  const newFilenamePath = pathDetermine(newFilename);
+  fs.rename(filePath, newFilenamePath, (err) => {
+    if (err) {
+      console.log(`Error renaming file: ${err}`);
+    } else {
+      console.log(`File renamed successfully to ${newFilename}`);
     }
-    const newFilenamePath = pathDetermine(newFilename);
-    fs.rename(filePath, newFilenamePath, (err) => {
-        if (err) {
-            console.log(`Error renaming file: ${err}`);
-        } else {
-            console.log(`File renamed successfully to ${newFilename}`);
-        }
-    });
+  });
 }
 
 function pathExists(targetPath) {
-    if (!fs.existsSync(targetPath)) {
-        console.log(`Operation failed: The system cannot find the path specified.`);
-        return false;
+  if (!fs.existsSync(targetPath)) {
+    console.log(`Operation failed: The system cannot find the path specified.`);
+    return false;
+  }
+  return true;
+}
+
+function copyFile(sourceFilePath, destinationDirectoryPath) {
+  const sourceFile = pathDetermine(sourceFilePath);
+  const destinationDirectory = pathDetermine(destinationDirectoryPath);
+
+  if (!pathExists(sourceFile)) {
+    console.log(`Source file ${sourceFilePath} does not exist.`);
+    return;
+  }
+
+  if (!pathExists(destinationDirectory)) {
+    console.log(
+      `Destination directory ${destinationDirectoryPath} does not exist.`
+    );
+    return;
+  }
+
+  const destinationFilePath = join(
+    destinationDirectory,
+    parse(sourceFile).base
+  );
+
+  fs.copyFile(sourceFile, destinationFilePath, (err) => {
+    if (err) {
+      console.log(`Operation failed: ${err}`);
+      return false;
+    } else {
+      return true;
     }
+  });
+}
+
+function deleteFile(filePath) {
+  let isDeleted = false;
+  fs.unlink(filePath, (err) => {
+    if (err) {
+      console.log(`Error deleting file: ${err}`);
+    } else {
+      isDeleted = true;
+    }
+  });
+  return isDeleted;
+}
+
+function moveFile(sourceFilePath, destinationDirectoryPath) {
+  if (!copyFile(sourceFilePath, destinationDirectoryPath)) {
+    return false;
+  }
+
+  if (deleteFile(sourceFilePath)) {
     return true;
+  } else {
+    return false;
+  }
 }
 
 const username = getCommandLineArg("username");
@@ -170,6 +226,47 @@ rl.on("line", (line) => {
     const filePath = args[1];
     const newFilename = args[2];
     renameFile(filePath, newFilename);
+  }
+
+  if (line.startsWith("cp ")) {
+    const args = line.split(" ");
+    const sourceFilePath = args[1];
+    const destinationDirectoryPath = args[2];
+    if (copyFile(sourceFilePath, destinationDirectoryPath)) {
+      console.log(
+        `File ${sourceFilePath} copied to ${destinationDirectoryPath}`
+      );
+    }
+  }
+
+  if (line.startsWith("mv ")) {
+    const args = line.split(" ");
+    const sourceFilePath = args[1];
+    const destinationDirectoryPath = args[2];
+    if (moveFile(sourceFilePath, destinationDirectoryPath)) {
+      console.log(
+        `File ${sourceFilePath} moved to ${destinationDirectoryPath}`
+      );
+    }
+  }
+
+  if (line.startsWith("rm ")) {
+    rl.prompt();
+    const filePath = pathDetermine(line.split(" ")[1]);
+    if (!pathExists(filePath)) {
+      return;
+    }
+    let isDeleted = deleteFile(filePath);
+    if (isDeleted) {
+      console.log(`File ${filePath} deleted successfully`);
+    }
+  }
+
+  if (line.startsWith("os ")){
+    const os = require("os");
+    console.log(`Default End-Of-Line: ${os.EOL}`);
+    console.log(`Operating System: ${os.type()} ${os.release()}`);
+    console.log(`Default End-Of-Line: ${os.EOL}`);
   }
 
   rl.prompt();
