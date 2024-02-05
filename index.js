@@ -185,6 +185,33 @@ function moveFile(sourceFilePath, destinationDirectoryPath) {
   }
 }
 
+function getCpuInfo() {
+    const cpus = os.cpus();
+    console.log(`Overall amount of CPUs: ${cpus.length}`);
+
+    cpus.forEach((cpu, index) => {
+        console.log(`CPU ${index + 1}:`);
+        console.log(`  Model: ${cpu.model}`);
+        console.log(`  Clock rate: ${cpu.speed / 1000} GHz`);
+    });
+}
+
+function getEOL() {
+    console.log(`Default End-Of-Line: ${os.EOL}`);
+}
+
+function getHomeDir() {
+    console.log(`Home directory: ${homedir()}`);
+}
+
+function getUsername() {
+    console.log(`Username: ${os.userInfo().username}`);
+}
+
+function getArchitecture() {
+    console.log(`Architecture: ${os.arch()}`);
+}
+
 const username = getCommandLineArg("username");
 console.log(`Welcome to the File Manager, ${username}!`);
 let currentDirectoryPath = join(process.env.SystemDrive, process.env.HOMEPATH);
@@ -263,10 +290,21 @@ rl.on("line", (line) => {
   }
 
   if (line.startsWith("os ")){
-    const os = require("os");
-    console.log(`Default End-Of-Line: ${os.EOL}`);
-    console.log(`Operating System: ${os.type()} ${os.release()}`);
-    console.log(`Default End-Of-Line: ${os.EOL}`);
+    if (line === "os --EOL") {
+        getEOL();
+    }
+    else if (line === "os --cpus") {
+        getCpuInfo();
+    }
+    else if (line === "os --homedir"){
+        getHomeDir();
+    }
+    else if (line === "os --username"){
+        getUsername();
+    }
+    else if (line === "os --architecture"){
+        getArchitecture();
+    }
   }
 
   rl.prompt();
