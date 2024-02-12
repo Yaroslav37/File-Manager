@@ -1,54 +1,34 @@
 import { createInterface } from "readline";
-import { parse, dirname, isAbsolute, join } from "path";
-import { homedir } from "os";
-import { existsSync } from "fs";
-
-function getCommandLineArg(argName) {
-  const args = process.argv.slice(2);
-  let argValue;
-
-  for (let i = 0; i < args.length; i++) {
-    if (args[i].startsWith(`--${argName}=`)) {
-      argValue = args[i].split("=")[1];
-      break;
-    }
-  }
-
-  return argValue;
-}
-
-function up() {
-  const rootDirectoryPath = parse(homedir()).root;
-  if (currentDirectoryPath !== rootDirectoryPath) {
-    const parentDirectoryPath = dirname(currentDirectoryPath);
-    currentDirectoryPath = parentDirectoryPath;
-  } else {
-    console.log("Already at the root folder");
-  }
-}
-
-function cd(targetPath) {
-  let newDirectoryPath;
-
-  if (isAbsolute(targetPath)) {
-    newDirectoryPath = targetPath;
-  } else {
-    newDirectoryPath = join(currentDirectoryPath, targetPath);
-  }
-
-  if (existsSync(newDirectoryPath)) {
-    currentDirectoryPath = newDirectoryPath;
-  } else {
-    console.log(`Operation failed: The system cannot find the path specified.`);
-  }
-}
+import { pathDetermine, pathExists } from "./utils/pathCheck.js";
+import { calcHash } from "./utils/hash.js";
+import {
+  getEOL,
+  getHomeDir,
+  getUsername,
+  getArchitecture,
+  getCpuInfo,
+} from "./utils/os.js";
+import { up, ls, cd } from "./utils/filesystem.js";
+import { getCommandLineArg } from "./utils/parseArg.js";
+import {
+  add,
+  cat,
+  renameFile,
+  copyFile,
+  deleteFile,
+  moveFile,
+} from "./utils/file.js";
+import { compressFile, decompressFile } from "./utils/zip.js";
+import { join } from "path";
 
 const username = getCommandLineArg("username");
 console.log(`Welcome to the File Manager, ${username}!`);
-let currentDirectoryPath = join(
+
+global.currentDirectoryPath = join(
   process.env.SystemDrive,
   process.env.HOMEPATH
 );
+
 console.log(`You are currently in ${currentDirectoryPath}`);
 
 const rl = createInterface({
@@ -60,25 +40,83 @@ const rl = createInterface({
 rl.prompt();
 
 rl.on("line", (line) => {
-  if (line === "up") {
+  if (line === ".exit") {
+    rl.close();
+  } else if (line === "up") {
     up();
-  }
-
-  if (line.startsWith("cd ")) {
+  } else if (line.startsWith("cd ")) {
     const targetPath = line.split(" ")[1];
     cd(targetPath);
+  } else if (line === "ls") {
+    ls();
+  } else if (line.startsWith("cat ")) {
+    cat(pathDetermine(line.split(" ")[1]));
+  } else if (line.startsWith("add ")) {
+    const fileName = line.split(" ")[1];
+    add(fileName);
+  } else if (line.startsWith("rn ")) {
+    const args = line.split(" ");
+    const filePath = args[1];
+    const newFilename = args[2];
+    renameFile(filePath, newFilename);
+  } else if (line.startsWith("cp ")) {
+    const args = line.split(" ");
+    const sourceFilePath = args[1];
+    const destinationDirectoryPath = args[2];
+    if (copyFile(sourceFilePath, destinationDirectoryPath)) {
+      console.log(
+        `File ${sourceFilePath} copied to ${destinationDirectoryPath}`
+      );
+    }
+  } else if (line.startsWith("mv ")) {
+    const args = line.split(" ");
+    const sourceFilePath = args[1];
+    const destinationDirectoryPath = args[2];
+    if (moveFile(sourceFilePath, destinationDirectoryPath)) {
+      console.log(
+        `File ${sourceFilePath} moved to ${destinationDirectoryPath}`
+      );
+    }
+  } else if (line.startsWith("rm ")) {
+    rl.prompt();
+    const filePath = pathDetermine(line.split(" ")[1]);
+    if (!pathExists(filePath)) {
+      return;
+    }
+    let isDeleted = deleteFile(filePath);
+    if (isDeleted) {
+      console.log(`File ${filePath} deleted successfully`);
+    }
+  } else if (line.startsWith("os ")) {
+    if (line === "os --EOL") {
+      getEOL();
+    } else if (line === "os --cpus") {
+      getCpuInfo();
+    } else if (line === "os --homedir") {
+      getHomeDir();
+    } else if (line === "os --username") {
+      getUsername();
+    } else if (line === "os --architecture") {
+      getArchitecture();
+    }
+  } else if (line.startsWith("hash ")) {
+    const filePath = pathDetermine(line.split(" ")[1]);
+    calcHash(filePath);
+  } else if (line.startsWith("compress ")) {
+    const args = line.split(" ");
+    const sourceFilePath = args[1];
+    const destinationFilePath = args[2];
+    compressFile(sourceFilePath, destinationFilePath);
+  } else if (line.startsWith("decompress ")) {
+    const args = line.split(" ");
+    const sourceFilePath = args[1];
+    const destinationFilePath = args[2];
+    decompressFile(sourceFilePath, destinationFilePath);
+  } else {
+    console.log("Invalid input");
   }
 
   rl.prompt();
-
-  if (line === ".exit") {
-    rl.close();
-  }
-  // } else if (line === ".help") {
-  //     console.log(`Received command: ${line}`);
-  // } else {
-  //     console.log("Invalid input");
-  // }
 
   console.log(`You are currently in ${currentDirectoryPath}`);
 });
